@@ -1,8 +1,7 @@
 import { useRef, useState } from "react";
-import { useFrame, useLoader } from "@react-three/fiber";
-import { TextureLoader } from "three";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { RoundedBox } from "@react-three/drei";
+import { RoundedBox, Text } from "@react-three/drei";
 import { useMemoryGame, type Tile } from "@/lib/stores/useMemoryGame";
 import { useAudio } from "@/lib/stores/useAudio";
 
@@ -15,11 +14,6 @@ export function MemoryTile({ tile }: MemoryTileProps) {
   const [hovered, setHovered] = useState(false);
   const flipTile = useMemoryGame((state) => state.flipTile);
   const { playHit, playSuccess } = useAudio();
-  
-  const flowerTexture = useLoader(
-    TextureLoader,
-    `/images/flowers/flower${tile.iconId}.png`
-  );
   
   const targetRotation = tile.isFlipped ? Math.PI : 0;
   const targetScale = tile.isMatched ? 0 : 1;
@@ -51,25 +45,30 @@ export function MemoryTile({ tile }: MemoryTileProps) {
     }
   });
   
-  const handleClick = () => {
+  const handleClick = (e: any) => {
+    e.stopPropagation(); // 🔒 Prevent click from reaching tiles below
     if (!tile.isActive || tile.isMatched || tile.isFlipped) {
-      console.log(`Tile ${tile.id} not clickable - active: ${tile.isActive}, matched: ${tile.isMatched}, flipped: ${tile.isFlipped}`);
+      console.log(
+        `Tile ${tile.id} not clickable - active: ${tile.isActive}, matched: ${tile.isMatched}, flipped: ${tile.isFlipped}`
+      );
       return;
     }
-    
+
     console.log(`Clicking tile ${tile.id}`);
     playHit();
     flipTile(tile.id);
   };
   
-  const handlePointerOver = () => {
+  const handlePointerOver = (e: any) => {
+    e.stopPropagation(); // Prevent hover passing through
     if (tile.isActive && !tile.isMatched && !tile.isFlipped) {
       setHovered(true);
       document.body.style.cursor = "pointer";
     }
   };
   
-  const handlePointerOut = () => {
+  const handlePointerOut = (e: any) => {
+    e.stopPropagation();
     setHovered(false);
     document.body.style.cursor = "default";
   };
@@ -77,18 +76,25 @@ export function MemoryTile({ tile }: MemoryTileProps) {
   const tileColor = tile.isActive ? (hovered ? "#f0f0f0" : "#ffffff") : "#cccccc";
   const edgeColor = "#d4a574";
   
-  const eventHandlers = tile.isActive ? {
-    onClick: handleClick,
-    onPointerOver: handlePointerOver,
-    onPointerOut: handlePointerOut,
-  } : {};
-  
+  const eventBindings = tile.isActive
+    ? {
+        onClick: handleClick,
+        onPointerOver: handlePointerOver,
+        onPointerOut: handlePointerOut,
+      }
+    : {
+        onClick: (e: any) => e.stopPropagation(),
+        onPointerOver: (e: any) => e.stopPropagation(),
+        onPointerOut: (e: any) => e.stopPropagation(),
+      };
+
   return (
     <group
       ref={groupRef}
       position={tile.position}
-      {...eventHandlers}
+      {...eventBindings}
     >
+
       <RoundedBox
         args={[1, 0.2, 1]}
         radius={0.05}
@@ -103,15 +109,19 @@ export function MemoryTile({ tile }: MemoryTileProps) {
         />
       </RoundedBox>
       
+      {/* MIDI number label - only show when flipped */}
       {tile.isFlipped && !tile.isMatched && (
-        <mesh position={[0, 0.11, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[0.8, 0.8]} />
-          <meshBasicMaterial
-            map={flowerTexture}
-            transparent={true}
-            opacity={targetOpacity}
-          />
-        </mesh>
+        <Text
+          position={[0, 0.11, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={0.3}
+          color="#333333"
+          anchorX="center"
+          anchorY="middle"
+          maxWidth={0.8}
+        >
+          {tile.midiNumber}
+        </Text>
       )}
       
       <mesh position={[0.5, 0, 0]}>
