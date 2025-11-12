@@ -1,58 +1,13 @@
-import { useEffect, useState } from "react";
 import { useMemoryGame } from "@/lib/stores/useMemoryGame";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Trophy, Move, Timer, Layers, TrendingDown } from "lucide-react";
-import { saveScore } from "@/lib/leaderboardStorage";
+import { Trophy, Layers } from "lucide-react";
 
 export function EndScreen() {
-  const moves = useMemoryGame((state) => state.moves);
-  const elapsedTime = useMemoryGame((state) => state.elapsedTime);
   const difficulty = useMemoryGame((state) => state.difficulty);
   const layers = useMemoryGame((state) => state.layers);
-  const teamId = useMemoryGame((state) => state.teamId);
   const discoveredNotes = useMemoryGame((state) => state.discoveredNotes);
   const resetGame = useMemoryGame((state) => state.resetGame);
-  const [score, setScore] = useState<number | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  
-  useEffect(() => {
-    if (moves > 0 && elapsedTime > 0) {
-      const calculatedScore = elapsedTime / moves;
-      setScore(calculatedScore);
-      
-      // Submit to leaderboard
-      if (teamId && !submitted && !submitting) {
-        setSubmitting(true);
-        submitScore(calculatedScore);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moves, elapsedTime, teamId, submitted, submitting]);
-  
-  const submitScore = (calculatedScore: number) => {
-    try {
-      if (!teamId) {
-        console.error("No team ID available");
-        return;
-      }
-      
-      console.log("Saving score to local storage:", { teamId, score: calculatedScore });
-      saveScore(teamId, calculatedScore);
-      setSubmitted(true);
-    } catch (error) {
-      console.error("Error saving score:", error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-  
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}m ${secs}s`;
-  };
   
   const getDifficultyLabel = () => {
     switch (difficulty) {
@@ -88,34 +43,6 @@ export function EndScreen() {
                 <span className="font-bold text-gray-900">{layers.length}</span>
               </div>
               
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <Move className="w-5 h-5 text-blue-600" />
-                  <span className="text-gray-700 font-medium">Total Moves</span>
-                </div>
-                <span className="font-bold text-gray-900">{moves}</span>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <Timer className="w-5 h-5 text-orange-600" />
-                  <span className="text-gray-700 font-medium">Time Taken</span>
-                </div>
-                <span className="font-bold text-gray-900">{formatTime(elapsedTime)}</span>
-              </div>
-              
-              {score !== null && (
-                <div className="flex justify-between items-center pt-2 border-t border-purple-200">
-                  <div className="flex items-center gap-2">
-                    <TrendingDown className="w-5 h-5 text-purple-600" />
-                    <span className="text-gray-700 font-medium">Final Score</span>
-                  </div>
-                  <span className="font-bold text-lg text-purple-700">
-                    {score.toFixed(2)}
-                  </span>
-                </div>
-              )}
-              
               <div className="flex justify-between items-center pt-2 border-t border-purple-200">
                 <div className="flex items-center gap-2">
                   <span className="text-gray-700 font-medium">Notes Discovered</span>
@@ -124,18 +51,6 @@ export function EndScreen() {
               </div>
             </div>
           </div>
-          
-          {submitting && (
-            <div className="text-center text-sm text-gray-600">
-              Submitting score to leaderboard...
-            </div>
-          )}
-          
-          {submitted && (
-            <div className="text-center text-sm text-green-600 bg-green-50 p-3 rounded-lg">
-              ✓ Score submitted to leaderboard!
-            </div>
-          )}
           
           <Button
             onClick={resetGame}

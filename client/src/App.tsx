@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Suspense } from "react";
 import { OrbitControls } from "@react-three/drei";
@@ -10,26 +9,11 @@ import { GameHUD } from "./components/GameHUD";
 import { EndScreen } from "./components/EndScreen";
 import { SoundManager } from "./components/SoundManager";
 import { GameSounds } from "./components/GameSounds";
-import { NavBar } from "./components/NavBar";
-import { LeaderboardPage } from "./components/LeaderboardPage";
 import { DiscoveredNotesPanel } from "./components/DiscoveredNotesPanel";
 import { NoteMatchPopup } from "./components/NoteMatchPopup";
 
 function App() {
   const phase = useMemoryGame((state) => state.phase);
-  const [currentPage, setCurrentPage] = useState<"home" | "leaderboard">("home");
-  
-  // Show leaderboard page if on leaderboard route
-  if (currentPage === "leaderboard") {
-    return (
-      <div style={{ width: '100vw', minHeight: '100vh', position: 'relative' }}>
-        <NavBar currentPage={currentPage} onNavigate={setCurrentPage} />
-        <div className="pt-16">
-          <LeaderboardPage />
-        </div>
-      </div>
-    );
-  }
   
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
@@ -39,7 +23,6 @@ function App() {
       
       {phase === "playing" && (
         <>
-          <NavBar currentPage={currentPage} onNavigate={setCurrentPage} />
           <GameSounds />
           <Canvas
             shadows
@@ -76,8 +59,8 @@ function App() {
       
       {phase === "ended" && (
         <>
-          <NavBar currentPage={currentPage} onNavigate={setCurrentPage} />
           <EndScreen />
+          <DiscoveredNotesPanel />
         </>
       )}
     </div>
