@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
-import { MIDI_NOTES, type MIDINote } from "@/lib/midiData";
+import { MIDI_NOTE_MAPPING, type MidiNote } from "@/midiNoteMapping";
 
 export type GamePhase = "menu" | "playing" | "ended";
 export type Difficulty = "easy" | "medium" | "hard";
@@ -34,8 +34,8 @@ interface GameState {
   elapsedTime: number;
   isBusy: boolean;
   teamId: string | null;
-  discoveredNotes: MIDINote[];
-  matchedNote: MIDINote | null; // For popup display
+  discoveredNotes: MidiNote[];
+  matchedNote: MidiNote | null; // For popup display
   
   setTeamId: (teamId: string) => void;
   initGame: (difficulty: Difficulty) => void;
@@ -66,15 +66,16 @@ const generateTilesForLayer = (layerIndex: number, gridSize: number): Tile[] => 
   const totalTiles = gridSize * gridSize;
   const pairCount = totalTiles / 2;
   
-  // Select random MIDI numbers from the available range (1-128)
-  // Use a subset to avoid too many different notes
-  const availableMIDIs = Array.from({ length: 128 }, (_, i) => i + 1);
+  // Select random MIDI notes from MIDI_NOTE_MAPPING (0-127)
+  // Create a copy of the mapping array to avoid mutating the original
+  const availableNotes = [...MIDI_NOTE_MAPPING];
   const selectedMIDIs: number[] = [];
   
   // Randomly select MIDI numbers for pairs
   for (let i = 0; i < pairCount; i++) {
-    const randomIndex = Math.floor(Math.random() * availableMIDIs.length);
-    const midiNumber = availableMIDIs.splice(randomIndex, 1)[0];
+    const randomIndex = Math.floor(Math.random() * availableNotes.length);
+    const selectedNote = availableNotes.splice(randomIndex, 1)[0];
+    const midiNumber = selectedNote.midi;
     selectedMIDIs.push(midiNumber, midiNumber); // Add pair
   }
   
@@ -244,7 +245,7 @@ export const useMemoryGame = create<GameState>()(
 
       if (isMatch) {
         // Get the note information for the matched MIDI number
-        const matchedNote = MIDI_NOTES.find(n => n.midi === tile1.midiNumber);
+        const matchedNote = MIDI_NOTE_MAPPING.find(n => n.midi === tile1.midiNumber);
         
         // Add to discovered notes if not already there
         const newDiscoveredNotes = [...state.discoveredNotes];

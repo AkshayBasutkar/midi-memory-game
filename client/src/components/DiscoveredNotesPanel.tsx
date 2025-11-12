@@ -6,7 +6,7 @@ export function DiscoveredNotesPanel() {
   const discoveredNotes = useMemoryGame((state) => state.discoveredNotes);
   
   return (
-    <Card className="fixed right-4 top-20 w-64 bg-white/90 backdrop-blur shadow-lg z-10 max-h-[calc(100vh-6rem)] overflow-hidden flex flex-col">
+    <Card className="fixed right-4 top-20 w-64 bg-white/90 backdrop-blur shadow-lg z-[60] max-h-[calc(100vh-6rem)] overflow-hidden flex flex-col">
       <CardHeader className="pb-3 border-b">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <Music className="w-5 h-5 text-purple-600" />
