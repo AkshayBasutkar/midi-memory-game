@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
-import { MIDI_NOTE_MAPPING, type MidiNote } from "@/midiNoteMapping";
+import { MIDI_NOTE_MAPPING, type MidiNote, getDifficultyMapping } from "@/midiNoteMapping";
 
 export type GamePhase = "menu" | "playing" | "ended";
 export type Difficulty = "easy" | "medium" | "hard";
@@ -61,28 +61,101 @@ const getDifficultyConfig = (difficulty: Difficulty) => {
   }
 };
 
-const generateTilesForLayer = (layerIndex: number, gridSize: number): Tile[] => {
-  const tiles: Tile[] = [];
-  const totalTiles = gridSize * gridSize;
-  const pairCount = totalTiles / 2;
-  
-  // Select random MIDI notes from MIDI_NOTE_MAPPING (0-127)
-  // Create a copy of the mapping array to avoid mutating the original
-  const availableNotes = [...MIDI_NOTE_MAPPING];
+// Generate pairs for a layer using difficulty-specific mappings
+// Ensures all mapping entries are used first, then falls back to random mappings
+const generatePairsForLayer = (
+  layerIndex: number,
+  pairCount: number,
+  difficulty: Difficulty,
+  usedMappingIndices: Set<number> // Track which indices in the mapping array have been used
+): { midiNumbers: number[]; usedMappingIndices: Set<number> } => {
   const selectedMIDIs: number[] = [];
+  const newUsedMappingIndices = new Set(usedMappingIndices);
   
-  // Randomly select MIDI numbers for pairs
-  for (let i = 0; i < pairCount; i++) {
-    const randomIndex = Math.floor(Math.random() * availableNotes.length);
-    const selectedNote = availableNotes.splice(randomIndex, 1)[0];
-    const midiNumber = selectedNote.midi;
-    selectedMIDIs.push(midiNumber, midiNumber); // Add pair
+  // Get the difficulty-specific mapping
+  const difficultyMapping = getDifficultyMapping(difficulty);
+  
+  // Create a list of available mapping entries (indices not yet used)
+  const availableMappingIndices: number[] = [];
+  for (let i = 0; i < difficultyMapping.length; i++) {
+    if (!newUsedMappingIndices.has(i)) {
+      availableMappingIndices.push(i);
+    }
   }
   
-  // Shuffle the selected MIDI numbers
+  // Shuffle available mapping indices to randomize order
+  const shuffledIndices = [...availableMappingIndices].sort(() => Math.random() - 0.5);
+  
+  let pairsAdded = 0;
+  
+  // Add pairs from the difficulty mapping first
+  // Each entry in the mapping should be used at least once (as a pair)
+  for (const mappingIndex of shuffledIndices) {
+    if (pairsAdded >= pairCount) break;
+    
+    const midi = difficultyMapping[mappingIndex];
+    selectedMIDIs.push(midi, midi); // Add pair
+    newUsedMappingIndices.add(mappingIndex);
+    pairsAdded++;
+    
+    console.log(`Layer ${layerIndex}: Added mapping note ${midi} (index ${mappingIndex} in mapping)`);
+  }
+  
+  // If we still need more pairs, use random MIDI numbers from the full mapping
+  if (pairsAdded < pairCount) {
+    const allMIDINumbers = MIDI_NOTE_MAPPING.map(note => note.midi);
+    const remainingPairs = pairCount - pairsAdded;
+    
+    for (let i = 0; i < remainingPairs; i++) {
+      const randomIndex = Math.floor(Math.random() * allMIDINumbers.length);
+      const midiNumber = allMIDINumbers[randomIndex];
+      selectedMIDIs.push(midiNumber, midiNumber); // Add pair
+      console.log(`Layer ${layerIndex}: Added random note ${midiNumber}`);
+    }
+  }
+  
+  console.log(`Layer ${layerIndex}: Final MIDI numbers:`, selectedMIDIs);
+  
+  // Shuffle the selected MIDI numbers for this layer
   for (let i = selectedMIDIs.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [selectedMIDIs[i], selectedMIDIs[j]] = [selectedMIDIs[j], selectedMIDIs[i]];
+  }
+  
+  return { midiNumbers: selectedMIDIs, usedMappingIndices: newUsedMappingIndices };
+};
+
+const generateTilesForLayer = (
+  layerIndex: number, 
+  gridSize: number, 
+  difficulty: Difficulty,
+  preGeneratedMIDIs?: number[] // Pre-generated MIDI numbers for this layer only
+): Tile[] => {
+  const tiles: Tile[] = [];
+  const totalTiles = gridSize * gridSize;
+  
+  let selectedMIDIs: number[] = [];
+  
+  if (preGeneratedMIDIs) {
+    // Use the pre-generated MIDI numbers for this layer
+    // These are already complete pairs that stay within this layer
+    selectedMIDIs = preGeneratedMIDIs;
+  } else {
+    // This shouldn't happen, but fallback to random if needed
+    const pairCount = totalTiles / 2;
+    const allMIDINumbers = MIDI_NOTE_MAPPING.map(note => note.midi);
+    
+    for (let i = 0; i < pairCount; i++) {
+      const randomIndex = Math.floor(Math.random() * allMIDINumbers.length);
+      const midiNumber = allMIDINumbers[randomIndex];
+      selectedMIDIs.push(midiNumber, midiNumber); // Add pair
+    }
+    
+    // Shuffle the selected MIDI numbers
+    for (let i = selectedMIDIs.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [selectedMIDIs[i], selectedMIDIs[j]] = [selectedMIDIs[j], selectedMIDIs[i]];
+    }
   }
   
   let tileIndex = 0;
@@ -132,15 +205,31 @@ export const useMemoryGame = create<GameState>()(
 
     initGame: (difficulty: Difficulty) => {
       console.log("Initializing game with difficulty:", difficulty);
+      const difficultyMapping = getDifficultyMapping(difficulty);
+      console.log(`Difficulty-specific mapping for ${difficulty}:`, difficultyMapping);
+      
       const config = getDifficultyConfig(difficulty);
 
-      const layers: Layer[] = config.layers.map((layerConfig, index) => ({
-        index,
-        gridSize: layerConfig.size,
-        tiles: generateTilesForLayer(index, layerConfig.size),
-        isActive: false,
-        isCleared: false,
-      }));
+      // Generate pairs per layer using difficulty-specific mappings
+      // This ensures all mapping entries are used first, then falls back to random
+      let usedMappingIndices = new Set<number>();
+      const layers: Layer[] = config.layers.map((layerConfig, index) => {
+        const totalTiles = layerConfig.size * layerConfig.size;
+        const pairCount = totalTiles / 2;
+        
+        // Generate pairs for this layer using difficulty-specific mapping
+        const result = generatePairsForLayer(index, pairCount, difficulty, usedMappingIndices);
+        const layerMIDIs = result.midiNumbers;
+        usedMappingIndices = result.usedMappingIndices;
+        
+        return {
+          index,
+          gridSize: layerConfig.size,
+          tiles: generateTilesForLayer(index, layerConfig.size, difficulty, layerMIDIs),
+          isActive: false,
+          isCleared: false,
+        };
+      });
 
       // ✅ Activate the topmost layer and its tiles
       const topIndex = layers.length - 1;
@@ -150,6 +239,26 @@ export const useMemoryGame = create<GameState>()(
           isActive: true,
           tiles: layers[topIndex].tiles.map(t => ({ ...t, isActive: true })),
         };
+      }
+
+      // Verify mapping notes are included
+      const allMIDIsInTiles = layers.flatMap(layer => layer.tiles.map(t => t.midiNumber));
+      const uniqueMIDIs = Array.from(new Set(allMIDIsInTiles));
+      const mappingPresent = Array.from(new Set(difficultyMapping)).filter(midi => uniqueMIDIs.includes(midi));
+      console.log("All MIDI numbers in tiles:", uniqueMIDIs.sort((a, b) => a - b));
+      console.log("Difficulty mapping MIDI numbers present:", mappingPresent);
+      console.log("Missing mapping MIDI numbers:", Array.from(new Set(difficultyMapping)).filter(midi => !uniqueMIDIs.includes(midi)));
+      
+      // Verify all tiles have pairs (solvability check)
+      const midiCounts = new Map<number, number>();
+      for (const midi of allMIDIsInTiles) {
+        midiCounts.set(midi, (midiCounts.get(midi) || 0) + 1);
+      }
+      const unmatchedTiles = Array.from(midiCounts.entries()).filter(([_, count]) => count % 2 !== 0);
+      if (unmatchedTiles.length > 0) {
+        console.error("ERROR: Found unmatched tiles (not in pairs):", unmatchedTiles);
+      } else {
+        console.log("✓ All tiles are properly paired - game is solvable");
       }
 
       set({
