@@ -134,3 +134,58 @@ export const MIDI_NOTE_MAPPING: readonly MidiNote[] = [
   { midi: 126, note: "F#9", frequency: 11839.82 },
   { midi: 127, note: "G9", frequency: 12543.85 },
 ] as const;
+
+// Difficulty-specific MIDI note mappings
+// These mappings prioritize specific MIDI numbers for each difficulty level
+// When these run out, the game will use random MIDI numbers from the full mapping
+
+export const EASY_MIDI_MAPPING: readonly number[] = [
+  5,   // F-1
+  2,   // D-1
+  10,  // A#-1
+  15,  // D#0
+  6,   // F#-1
+  7,   // G-1
+  8,   // G#-1
+  9,   // A-1
+  11,  // B-1
+  19,  // G0
+] as const;
+
+export const MEDIUM_MIDI_MAPPING: readonly number[] = [
+  7,   // G-1
+  26,  // D1
+  63,  // D#4
+  124, // E9
+  24,  // C1
+  4,   // E-1
+  20,  // G#0
+  36,  // C2
+  11,  // B-1
+  19,  // G0
+] as const;
+
+export const HARD_MIDI_MAPPING: readonly number[] = [
+  33,  // A1
+  7,   // G-1
+  1,   // C#-1
+  72,  // C5
+  13,  // C#0
+  6,   // F#-1
+  15,  // D#0
+  13,  // C#0 (duplicate as specified)
+  11,  // B-1
+  19,  // G0
+] as const;
+
+// Helper function to get difficulty-specific mapping
+export const getDifficultyMapping = (difficulty: "easy" | "medium" | "hard"): readonly number[] => {
+  switch (difficulty) {
+    case "easy":
+      return EASY_MIDI_MAPPING;
+    case "medium":
+      return MEDIUM_MIDI_MAPPING;
+    case "hard":
+      return HARD_MIDI_MAPPING;
+  }
+};
