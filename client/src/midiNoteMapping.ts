@@ -139,47 +139,50 @@ export const MIDI_NOTE_MAPPING: readonly MidiNote[] = [
 // These mappings prioritize specific MIDI numbers for each difficulty level
 // When these run out, the game will use random MIDI numbers from the full mapping
 
-export const EASY_MIDI_MAPPING: readonly number[] = [
-  5,   // F-1
-  2,   // D-1
-  10,  // A#-1
-  15,  // D#0
-  6,   // F#-1
-  7,   // G-1
-  8,   // G#-1
-  9,   // A-1
-  11,  // B-1
-  19,  // G0
+export const EASY_MIDI_MAPPING: readonly MidiNote[] = [
+  { midi: 5, note: "B4", frequency: 7040.0 },
+  { midi: 2, note: "A4", frequency: 7458.62 },
+  { midi: 10, note: "G4", frequency: 7902.13 },
+  { midi: 15, note: "D5", frequency: 8372.02 },
+  { midi: 6, note: "C5", frequency: 8869.84 },
+  { midi: 7, note: "A#4", frequency: 9397.27 },
+  { midi: 8, note: "F#4", frequency: 9956.06 },
+  { midi: 10, note: "G4", frequency: 10548.08 },
+  { midi: 125, note: "F9", frequency: 11175.3 },
+  { midi: 126, note: "F#9", frequency: 11839.82 },
+  { midi: 127, note: "G9", frequency: 12543.85 },
 ] as const;
 
-export const MEDIUM_MIDI_MAPPING: readonly number[] = [
-  7,   // G-1
-  26,  // D1
-  63,  // D#4
-  124, // E9
-  24,  // C1
-  4,   // E-1
-  20,  // G#0
-  36,  // C2
-  11,  // B-1
-  19,  // G0
+export const MEDIUM_MIDI_MAPPING: readonly MidiNote[] = [
+  { midi: 7, note: "E3", frequency: 7040.0 },
+  { midi: 26, note: "G#3", frequency: 7458.62 },
+  { midi: 63, note: "B3", frequency: 7902.13 },
+  { midi: 124, note: "C#4", frequency: 8372.02 },
+  { midi: 24, note: "A3", frequency: 8869.84 },
+  { midi: 4, note: "F#3", frequency: 9397.27 },
+  { midi: 20, note: "G3", frequency: 9956.06 },
+  { midi: 36, note: "D4", frequency: 10548.08 },
+  { midi: 125, note: "F9", frequency: 11175.3 },
+  { midi: 126, note: "F#9", frequency: 11839.82 },
+  { midi: 127, note: "G9", frequency: 12543.85 },
 ] as const;
 
-export const HARD_MIDI_MAPPING: readonly number[] = [
-  33,  // A1
-  7,   // G-1
-  1,   // C#-1
-  72,  // C5
-  13,  // C#0
-  6,   // F#-1
-  15,  // D#0
-  13,  // C#0 (duplicate as specified)
-  11,  // B-1
-  19,  // G0
+export const HARD_MIDI_MAPPING: readonly MidiNote[] = [
+  { midi: 33, note: "F4", frequency: 7040.0 },
+  { midi: 7, note: "C#5", frequency: 7458.62 },
+  { midi: 1, note: "E4", frequency: 7902.13 },
+  { midi: 72, note: "G4", frequency: 8372.02 },
+  { midi: 13, note: "A#4", frequency: 8869.84 },
+  { midi: 6, note: "D#4", frequency: 9397.27 },
+  { midi: 15, note: "F#4", frequency: 9956.06 },
+  { midi: 13, note: "A#4", frequency: 10548.08 },
+  { midi: 125, note: "F9", frequency: 11175.3 },
+  { midi: 126, note: "F#9", frequency: 11839.82 },
+  { midi: 127, note: "G9", frequency: 12543.85 },
 ] as const;
 
 // Helper function to get difficulty-specific mapping
-export const getDifficultyMapping = (difficulty: "easy" | "medium" | "hard"): readonly number[] => {
+export const getDifficultyMapping = (difficulty: "easy" | "medium" | "hard"): readonly MidiNote[] => {
   switch (difficulty) {
     case "easy":
       return EASY_MIDI_MAPPING;
