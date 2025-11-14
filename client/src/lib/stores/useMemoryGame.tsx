@@ -93,12 +93,13 @@ const generatePairsForLayer = (
   for (const mappingIndex of shuffledIndices) {
     if (pairsAdded >= pairCount) break;
     
-    const midi = difficultyMapping[mappingIndex];
+    const midiNote = difficultyMapping[mappingIndex];
+    const midi = midiNote.midi;
     selectedMIDIs.push(midi, midi); // Add pair
     newUsedMappingIndices.add(mappingIndex);
     pairsAdded++;
     
-    console.log(`Layer ${layerIndex}: Added mapping note ${midi} (index ${mappingIndex} in mapping)`);
+    console.log(`Layer ${layerIndex}: Added mapping note ${midi} (${midiNote.note}, index ${mappingIndex} in mapping)`);
   }
   
   // If we still need more pairs, use random MIDI numbers from the full mapping
@@ -206,7 +207,7 @@ export const useMemoryGame = create<GameState>()(
     initGame: (difficulty: Difficulty) => {
       console.log("Initializing game with difficulty:", difficulty);
       const difficultyMapping = getDifficultyMapping(difficulty);
-      console.log(`Difficulty-specific mapping for ${difficulty}:`, difficultyMapping);
+      console.log(`Difficulty-specific mapping for ${difficulty}:`, difficultyMapping.map(m => `${m.midi} (${m.note})`));
       
       const config = getDifficultyConfig(difficulty);
 
@@ -244,10 +245,11 @@ export const useMemoryGame = create<GameState>()(
       // Verify mapping notes are included
       const allMIDIsInTiles = layers.flatMap(layer => layer.tiles.map(t => t.midiNumber));
       const uniqueMIDIs = Array.from(new Set(allMIDIsInTiles));
-      const mappingPresent = Array.from(new Set(difficultyMapping)).filter(midi => uniqueMIDIs.includes(midi));
+      const mappingMidiNumbers = difficultyMapping.map(m => m.midi);
+      const mappingPresent = Array.from(new Set(mappingMidiNumbers)).filter(midi => uniqueMIDIs.includes(midi));
       console.log("All MIDI numbers in tiles:", uniqueMIDIs.sort((a, b) => a - b));
       console.log("Difficulty mapping MIDI numbers present:", mappingPresent);
-      console.log("Missing mapping MIDI numbers:", Array.from(new Set(difficultyMapping)).filter(midi => !uniqueMIDIs.includes(midi)));
+      console.log("Missing mapping MIDI numbers:", Array.from(new Set(mappingMidiNumbers)).filter(midi => !uniqueMIDIs.includes(midi)));
       
       // Verify all tiles have pairs (solvability check)
       const midiCounts = new Map<number, number>();
