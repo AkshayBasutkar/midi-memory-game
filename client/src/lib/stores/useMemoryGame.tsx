@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
-import { MIDI_NOTE_MAPPING, type MidiNote, getDifficultyMapping } from "@/midiNoteMapping";
+import { type MidiNote, getDifficultyMapping, getAllAvailableMIDINumbers, EASY_MIDI_MAPPING, MEDIUM_MIDI_MAPPING, HARD_MIDI_MAPPING } from "@/midiNoteMapping";
 
 export type GamePhase = "menu" | "playing" | "ended";
 export type Difficulty = "easy" | "medium" | "hard";
@@ -102,9 +102,9 @@ const generatePairsForLayer = (
     console.log(`Layer ${layerIndex}: Added mapping note ${midi} (${midiNote.note}, index ${mappingIndex} in mapping)`);
   }
   
-  // If we still need more pairs, use random MIDI numbers from the full mapping
+  // If we still need more pairs, use random MIDI numbers from available mappings
   if (pairsAdded < pairCount) {
-    const allMIDINumbers = MIDI_NOTE_MAPPING.map(note => note.midi);
+    const allMIDINumbers = getAllAvailableMIDINumbers();
     const remainingPairs = pairCount - pairsAdded;
     
     for (let i = 0; i < remainingPairs; i++) {
@@ -144,7 +144,7 @@ const generateTilesForLayer = (
   } else {
     // This shouldn't happen, but fallback to random if needed
     const pairCount = totalTiles / 2;
-    const allMIDINumbers = MIDI_NOTE_MAPPING.map(note => note.midi);
+    const allMIDINumbers = getAllAvailableMIDINumbers();
     
     for (let i = 0; i < pairCount; i++) {
       const randomIndex = Math.floor(Math.random() * allMIDINumbers.length);
@@ -355,8 +355,12 @@ export const useMemoryGame = create<GameState>()(
       console.log(`Match check: ${tile1.midiNumber} vs ${tile2.midiNumber} = ${isMatch}`);
 
       if (isMatch) {
-        // Get the note information for the matched MIDI number
-        const matchedNote = MIDI_NOTE_MAPPING.find(n => n.midi === tile1.midiNumber);
+        // Get the note information for the matched MIDI number from difficulty mappings
+        const difficultyMapping = getDifficultyMapping(state.difficulty);
+        const matchedNote = difficultyMapping.find(n => n.midi === tile1.midiNumber) ||
+          EASY_MIDI_MAPPING.find(n => n.midi === tile1.midiNumber) ||
+          MEDIUM_MIDI_MAPPING.find(n => n.midi === tile1.midiNumber) ||
+          HARD_MIDI_MAPPING.find(n => n.midi === tile1.midiNumber);
         
         // Add to discovered notes if not already there
         const newDiscoveredNotes = [...state.discoveredNotes];
